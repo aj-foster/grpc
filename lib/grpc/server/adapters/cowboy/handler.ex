@@ -456,12 +456,8 @@ defmodule GRPC.Server.Adapters.Cowboy.Handler do
   end
 
   # expected error raised from user to return error immediately
-  def info({:EXIT, pid, {%RPCError{} = error, stacktrace}}, req, state = %{pid: pid}) do
+  def info({:EXIT, pid, {%RPCError{} = error, _stacktrace}}, req, state = %{pid: pid}) do
     req = send_error(req, error, state, :rpc_error)
-
-    [req: req]
-    |> ReportException.new(error, stacktrace)
-    |> log_error(stacktrace)
 
     {:stop, req, state}
   end

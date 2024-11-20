@@ -122,6 +122,8 @@ defmodule GRPC.Server do
 
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
+      @type response(t) :: {:ok, t} | {:error, %GRPC.RPCError{}}
+
       service_mod = opts[:service]
       service_name = service_mod.__meta__(:name)
       codecs = opts[:codecs] || [GRPC.Codec.Proto, GRPC.Codec.WebText, GRPC.Codec.JSON]
@@ -339,12 +341,14 @@ defmodule GRPC.Server do
        ) do
     GRPC.Telemetry.server_span(server, endpoint, func_name, stream, fn ->
       last = fn r, s ->
-        reply = apply(server, func_name, [r, s])
-
         if res_stream do
+          apply(server, func_name, [r, s])
           {:ok, stream}
         else
-          {:ok, stream, reply}
+          case apply(server, func_name, [r, s]) do
+            {:ok, reply} -> {:ok, stream, reply}
+            {:error, error} -> {:error, error}
+          end
         end
       end
 
